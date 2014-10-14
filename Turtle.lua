@@ -1,40 +1,47 @@
-COBBLE_SLOT = 2
-CURRENT_SLOT = COBBLE_SLOT
-LAST_SLOT = COBBLE_SLOT
-SAND_SLOT = 5
-GRAVEL_SLOT = 3
-DIRT_SLOT = 4
-STONE_SLOT = 1
-TORCH_SLOT = 6
-ENDER_CHEST_SLOT = 7
-FUEL_SLOT = 16
-MIN_FUEL_COUNT = 16
-TORCH_SPACE = 10
-DISTANCE = 0
-currentSlot = 1
-INV_COUNT = 7
-WALL_DEPTH = 4
-recursiveDepth = 4
-repetition = 2
-TORCH_COUNT = 0
-FUEL_USED = 0
-LAST_FUEL = 0
-ORE = 0
-TOTAL_BLOCKS = 0
+--Designate inventory slots
+STONE_SLOT 			= 1
+COBBLE_SLOT			= 2
+GRAVEL_SLOT 		= 3
+DIRT_SLOT 			= 4
+SAND_SLOT 			= 5
+TORCH_SLOT 			= 6
+ENDER_CHEST_SLOT 	= 7
 
- 
-function A(depth)  -- A and B is the Hilbert curve recursion loop
+INV_COUNT 			= 7						--total number of inventory slots		
+FUEL_SLOT 			= 16
+
+--Set globals
+MIN_FUEL_COUNT 		= 16 					--minimum number of fuel items
+TORCH_SPACE 		= 10 					--number of block before placing a torch
+
+--Instantiate random shit
+CURRENT_SLOT 		= COBBLE_SLOT
+LAST_SLOT 			= COBBLE_SLOT
+
+DISTANCE 			= 0						--tracks total spaces moved forward
+TORCHES_USED		= 0						
+FUEL_USED 			= 0						--tracks units of fuel used, not blocks
+LAST_FUEL 			= 0						--previous FUEL_USED
+ORE					= 0						--total amount of ore mined
+TOTAL_BLOCKS 		= 0						--total amount of blocks dug
+
+--Hilbert variables
+H_REPETITION 		= 2						--Hilbert depth
+H_SEG_LENGTH		= 3						--Length of Hilbert segment
+
+-- Hilbert function
+function A(depth)  
  
    if depth < 1 then return end
    turtle.turnLeft()
    B(depth - 1)
-   MineForward(3)
+   MineForward(H_SEG_LENGTH)
    turtle.turnRight()
    A(depth - 1)
-   MineForward(3)
+   MineForward(H_SEG_LENGTH)
    A(depth - 1)
    turtle.turnRight()
-   MineForward(3)
+   MineForward(H_SEG_LENGTH)
    B(depth - 1)
    turtle.turnLeft()
  
@@ -45,13 +52,13 @@ function B(depth)
    if depth < 1 then return end
    turtle.turnRight()
    A(depth - 1)
-   MineForward(3)
+   MineForward(H_SEG_LENGTH)
    turtle.turnLeft()
    B(depth - 1)
-   MineForward(3)
+   MineForward(H_SEG_LENGTH)
    B(depth - 1)
    turtle.turnLeft()
-   MineForward(3)
+   MineForward(H_SEG_LENGTH)
    A(depth - 1)
    turtle.turnRight()
  
@@ -422,7 +429,7 @@ function Stats ( this, that )		--prints various stats
 			print(((TOTAL_BLOCKS + ORE) / DISTANCE) .. " blocks mined per tunnel section.")
 			print((FUEL_USED/(TOTAL_BLOCKS + ORE)).. " fuel per block.")return true
 		end
-	elseif this == "torch" then TORCH_COUNT = TORCH_COUNT + 1
+	elseif this == "torch" then TORCHES_USED = TORCHES_USED + 1
 		return true
 	elseif this == "fuel" then FUEL_USED = FUEL_USED + (LAST_FUEL - turtle.getFuelLevel())
 		print(FUEL_USED .. " total fuel used.")
@@ -471,8 +478,8 @@ function main()  --main deal
 	
 	InitFuel()
 	local AA = A
-	for i=1, repetition do
-	AA(2) end
+	for i=1, H_REPETITION do
+	AA(H_REPETITION2) end
 
 	
 end
