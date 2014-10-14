@@ -5,17 +5,17 @@ GRAVEL_SLOT 		= 3
 DIRT_SLOT 			= 4
 SAND_SLOT 			= 5
 TORCH_SLOT 			= 6
-ENDER_CHEST_SLOT 	= 7
+ENDER_CHEST_SLOT	= 7
 
 INV_COUNT 			= 7						--total number of inventory slots		
 FUEL_SLOT 			= 16
 
 --Set globals
-MIN_FUEL_COUNT 		= 16 					--minimum number of fuel items
-TORCH_SPACE 		= 10 					--number of block before placing a torch
+MIN_FUEL_COUNT		= 16 					--minimum number of fuel items
+TORCH_SPACE			= 10 					--number of block before placing a torch
 
 --Instantiate random shit
-CURRENT_SLOT 		= COBBLE_SLOT
+CURRENT_SLOT		= COBBLE_SLOT
 LAST_SLOT 			= COBBLE_SLOT
 
 DISTANCE 			= 0						--tracks total spaces moved forward
@@ -23,10 +23,10 @@ TORCHES_USED		= 0
 FUEL_USED 			= 0						--tracks units of fuel used, not blocks
 LAST_FUEL 			= 0						--previous FUEL_USED
 ORE					= 0						--total amount of ore mined
-TOTAL_BLOCKS 		= 0						--total amount of blocks dug
+TOTAL_BLOCKS		= 0						--total amount of blocks dug
 
 --Hilbert variables
-H_REPETITION 		= 2						--Hilbert depth
+H_REPETITION		= 2						--Hilbert depth
 H_SEG_LENGTH		= 3						--Length of Hilbert segment
 
 -- Hilbert function
