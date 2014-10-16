@@ -9,42 +9,41 @@ ENDER_CHEST_SLOT	= 7
 
 INV_COUNT 			= 7						--total number of inventory slots		
 FUEL_SLOT 			= 16
+TOTAL_SLOTS         = 16                    --number of slots in the turtle
 
 --Set globals
 MIN_FUEL_COUNT		= 16 					--minimum number of fuel items
 TORCH_SPACE			= 10 					--number of block before placing a torch
 
 --Instantiate random shit
-CURRENT_SLOT		= COBBLE_SLOT
-LAST_SLOT 			= COBBLE_SLOT
+CURRENT_SLOT		= STONE_SLOT            --if the turtle is not facing stone
+LAST_SLOT 			= STONE_SLOT            --then you are doing it wrong
 
 DISTANCE 			= 0						--tracks total spaces moved forward
 TORCHES_USED		= 0						
-FUEL_USED 			= 0						--tracks units of fuel used, not blocks
+FUEL_USED 			= 0						--tracks units of fuel used, not blocks used
 LAST_FUEL 			= 0						--previous FUEL_USED
 ORE					= 0						--total amount of ore mined
 TOTAL_BLOCKS		= 0						--total amount of blocks dug
 
---Hilbert variables
+--Hilbert variablesr
 H_REPETITION		= 2						--Hilbert depth
 H_SEG_LENGTH		= 3						--Length of Hilbert segment
 
--- Hilbert function
+-- Hilbert function 
 function A(depth)  
- 
    if depth < 1 then return end
    turtle.turnLeft()
    B(depth - 1)
-   MineForward(H_SEG_LENGTH)
+   TunnelForward(H_SEG_LENGTH)
    turtle.turnRight()
    A(depth - 1)
-   MineForward(H_SEG_LENGTH)
+   TunnelForward(H_SEG_LENGTH)
    A(depth - 1)
    turtle.turnRight()
-   MineForward(H_SEG_LENGTH)
+   TunnelForward(H_SEG_LENGTH)
    B(depth - 1)
    turtle.turnLeft()
- 
 end
  
 function B(depth)
@@ -52,77 +51,81 @@ function B(depth)
    if depth < 1 then return end
    turtle.turnRight()
    A(depth - 1)
-   MineForward(H_SEG_LENGTH)
+   TunnelForward(H_SEG_LENGTH)
    turtle.turnLeft()
    B(depth - 1)
-   MineForward(H_SEG_LENGTH)
+   TunnelForward(H_SEG_LENGTH)
    B(depth - 1)
    turtle.turnLeft()
-   MineForward(H_SEG_LENGTH)
+   TunnelForward(H_SEG_LENGTH)
    A(depth - 1)
    turtle.turnRight()
  
 end
  
-function MineForward( thisFar )
+function TunnelForward( thisFar )
 	
 	local i
 	
 	for i = 1, thisFar do  		--mine a 1x2 tunnel forward a given number of units
-	if turtle.detect() then		--if there is a block in front of the turtle remove it
-		RemoveBlock("forward")
-	end
-	turtle.forward()
+        if turtle.detect() then		--if there is a block in front of the turtle remove it
+            RemoveBlock("forward")
+        end
+        turtle.forward()
 	
-	if turtle.detectDown() then
-		if IsOre("down") then MineOre("down") end
-	else
-		FillLiquid("down")		--prevents water or lava from filling the tunnel
-	end
+        if turtle.detectDown() then
+            if IsOre("down") then MineOre("down") end
+        else
+            FillLiquid("down")		--prevents water or lava from filling the tunnel
+        end
 	
-	turtle.turnLeft()
-	if turtle.detect() then
-		if IsOre("forward") then MineOre("forward") end
-	else
-		FillLiquid("forward")
-	end
-	RemoveBlock("up")
+        turtle.turnLeft()
+        if turtle.detect() then
+			if IsOre("forward") then 
+				MineOre("forward")
+			end
+        else
+			FillLiquid("forward")
+		end
+		RemoveBlock("up")
 	
-	turtle.up()
-	if turtle.detectUp() then
-		if IsOre("up") then MineOre("up") end
-	else
-		FillLiquid("up")
-	end
+		turtle.up()
+		if turtle.detectUp() then
+			if IsOre("up") then MineOre("up") end
+		else
+			FillLiquid("up")
+		end
 	
-	if turtle.detect() then
-		if IsOre("forward") then MineOre("forward") end
-	else
-		FillLiquid("forward")
-	end
-	turtle.turnRight()
-	turtle.turnRight()
+		if turtle.detect() then
+			if IsOre("forward") then MineOre("forward") end
+		else
+			FillLiquid("forward")
+		end
+		turtle.turnRight()
+		turtle.turnRight()
 	
-	if turtle.detect() then
-		if IsOre("forward") then MineOre("forward") end
-	else
-		FillLiquid("forward")
-	end
-	turtle.down()
+		if turtle.detect() then
+			if IsOre("forward") then MineOre("forward") end
+		else
+			FillLiquid("forward")
+		end
+		turtle.down()
 	
-	TorchCheck()			--check to see if we need to place a torch
-	FuelCheck()				--make sure we're not out of fuel
+		TorchCheck()			--check to see if we need to place a torch
+		FuelCheck()				--make sure we're not out of fuel
 	
-	if turtle.detect() then
-		if IsOre("forward") then MineOre("forward") end
-	else
-		FillLiquid("forward")
-	end
-	turtle.turnLeft()
+		if turtle.detect() then
+			if IsOre("forward") then MineOre("forward") end
+		else
+			FillLiquid("forward")
+		end
+		turtle.turnLeft()
 	
-	Stats("distance")		--add one to distance travelled and display stats
+		Stats("distance")		--add one to distance travelled and display stats
 	
-	if IsFull() then CheckInventory() end	--dump inventory if it's full
+		if IsFull() then 
+			CheckInventory()
+		end	--dump inventory if it's full
 	end
 end
  
@@ -134,7 +137,7 @@ function CheckInventory( onInit )
 	print("Checking inventory...")	
 	local n = 0
 	
-	for i = INV_COUNT+1, 15 do				--first consolidate fuel items into one slot
+	for i = INV_COUNT+1, TOTAL_SLOTS - 1 do				--first consolidate fuel items into one slot
 		Select(FUEL_SLOT)
 		if turtle.compareTo(i) then
 			turtle.select(i)
@@ -166,7 +169,7 @@ function CheckSlotDupes ( index )	--check inventory slots for duplicate items, c
 	if index < INV_COUNT+1 then begin = INV_COUNT+1 
 	else begin = index + 1 end
 	Select(index)
-	for i = begin, 15 do
+	for i = begin, TOTAL_SLOTS - 1 do
 		if turtle.compareTo(i) then
 			turtle.select(i)
 			CURRENT_SLOT = i
@@ -195,7 +198,7 @@ function DumpInventory( here ) --drops chest and fills it
 	end											--place chest
 	Select(ENDER_CHEST_SLOT)
 	turtle.place()
-	for i = INV_COUNT+1, 15 do
+	for i = INV_COUNT+1, TOTAL_SLOTS - 1 do
 		print(i)
 		turtle.select(i)
 		CURRENT_SLOT = i
@@ -252,8 +255,7 @@ function FuelCheck()		--checks fuel level
 	end 
 	Select(LAST_SLOT)
 end
-	
-	
+		
 function InitFuel()  --used on first run
 	print("Checking fuel")
 	LAST_FUEL = turtle.getFuelLevel()
@@ -261,7 +263,7 @@ function InitFuel()  --used on first run
 	
 function IsFull ( )		--checks to see if inventory is full
 	local n, i
-	for i = INV_COUNT+1, 15 do
+	for i = INV_COUNT+1, TOTAL_SLOTS - 1 do
 		if turtle.getItemCount(i) > 0 then
 		else 
 			return false 
@@ -281,7 +283,7 @@ function IsOre(here)		--cycles through inventory slots and compares to a block
 			result = false
 		end
 	else
-		for i = 1, 15 do
+		for i = 1, TOTAL_SLOTS - 1 do
 			turtle.select(i)
 			CURRENT_SLOT = i
 			if Compare(here) then
@@ -369,9 +371,7 @@ function Place( here )		--places block up, forward or down.  fills in with grave
 			turtle.placeDown()
 			if not turtle.detectDown() then  --if there is a gap under the turtle, drop gravel to fill in
 				Select(GRAVEL_SLOT)
-				--turtle.placeDown()
 				return Place("down")
-				--Select(LAST_SLOT)
 			else turtle.placeDown() 
 			end
 		elseif here == "forward" then 
