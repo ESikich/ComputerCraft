@@ -62,75 +62,15 @@ function B(depth)
    turtle.turnRight()
  
 end
- 
-function TunnelForward( thisFar )
-	
-	local i
-	
-	for i = 1, thisFar do  		--mine a 1x2 tunnel forward a given number of units
-        if turtle.detect() then		--if there is a block in front of the turtle remove it
-            RemoveBlock("forward")
-        end
-        turtle.forward()
-	
-        if turtle.detectDown() then
-            if IsOre("down") then MineOre("down") end
-        else
-            FillLiquid("down")		--prevents water or lava from filling the tunnel
-        end
-	
-        turtle.turnLeft()
-        if turtle.detect() then
-			if IsOre("forward") then 
-				MineOre("forward")
-			end
-        else
-			FillLiquid("forward")
+  
+function BlockHandler( here )				
+	if Detect(here) then
+		if IsOre(here) then	
+			MineOre(here)
 		end
-		RemoveBlock("up")
-	
-		turtle.up()
-		if turtle.detectUp() then
-			if IsOre("up") then MineOre("up") end
-		else
-			FillLiquid("up")
-		end
-	
-		if turtle.detect() then
-			if IsOre("forward") then MineOre("forward") end
-		else
-			FillLiquid("forward")
-		end
-		turtle.turnRight()
-		turtle.turnRight()
-	
-		if turtle.detect() then
-			if IsOre("forward") then MineOre("forward") end
-		else
-			FillLiquid("forward")
-		end
-		turtle.down()
-	
-		TorchCheck()			--check to see if we need to place a torch
-		FuelCheck()				--make sure we're not out of fuel
-	
-		if turtle.detect() then
-			if IsOre("forward") then MineOre("forward") end
-		else
-			FillLiquid("forward")
-		end
-		turtle.turnLeft()
-	
-		Stats("distance")		--add one to distance travelled and display stats
-	
-		if IsFull() then 
-			CheckInventory()
-		end	--dump inventory if it's full
+	else
+		PlaceCobble(here)
 	end
-end
- 
-function BlockHandler( here )				--not sure if I really need to use this anymore, used to do more
-	if IsOre(here) then	MineOre(here) end 	--may just inline it
 end
 
 function CheckInventory( onInit )
@@ -230,21 +170,20 @@ function Dig( here )
 	elseif here == "down" then return turtle.digDown()
 	elseif here == "forward" then return turtle.dig() end end
 
-function FillLiquid( here )		--places a block
-	Select(COBBLE_SLOT)
-	if here == "all" then
-		Place("forward")
-		Place("up")
-		Place("down")
-		Left(Place, "forward")
-		Right(Place, "forward")	
-	else 
-		Place(here) 
-	end
-	Select(LAST_SLOT)
-end
-
-function FuelCheck()		--checks fuel level
+function DigAndMove ( here )
+	if here == "up" then 
+		RemoveBlock("up")
+		return turtle.up()
+	elseif here == "forward" then
+		RemoveBlock("forward")
+		return turtle.forward()
+	elseif here == "down" then
+		RemoveBlock("down")
+		return turtle.down()
+	end 
+end	
+	
+function FuelCheck()					--checks fuel level
 	local GC = turtle.getItemCount
 	print("Fuel: " .. turtle.getFuelLevel())
 	Stats("fuel")
@@ -256,14 +195,14 @@ function FuelCheck()		--checks fuel level
 	Select(LAST_SLOT)
 end
 		
-function InitFuel()  --used on first run
+function InitFuel()  					--used on first run
 	print("Checking fuel")
 	LAST_FUEL = turtle.getFuelLevel()
 	return FuelCheck() end
 	
-function IsFull ( )		--checks to see if inventory is full
+function IsFull ( )						--checks to see if inventory is full
 	local n, i
-	for i = INV_COUNT+1, TOTAL_SLOTS - 1 do
+	for i = INV_COUNT+1, TOTAL_SLOTS-1 do
 		if turtle.getItemCount(i) > 0 then
 		else 
 			return false 
@@ -272,7 +211,7 @@ function IsFull ( )		--checks to see if inventory is full
 	return true 
 end	
 	
-function IsOre(here)		--cycles through inventory slots and compares to a block
+function IsOre(here)					--cycles through inventory slots and compares to a block
 							--if it doesn't match our "junk" inventory, it's an ore
 	local i
 
@@ -304,7 +243,7 @@ function IsOre(here)		--cycles through inventory slots and compares to a block
 	return result
 end
 
-function Left( doThis, here )  --turn left, call a function, turn right	
+function Left( doThis, here )  			--turn left, call a function, turn right	
 	local result
 	local doIt = doThis	
 	turtle.turnLeft()
@@ -313,7 +252,7 @@ function Left( doThis, here )  --turn left, call a function, turn right
 	return result
 end
 
-function MineOre( here )					--remove surrounding vein	
+function MineOre( here )				--remove surrounding vein	
 	local m = MineOre						--declaring functions locally is supposed to be 
 	local a = 0								--much faster in lua
 	local RB = RemoveBlock
@@ -354,33 +293,51 @@ function MineOre( here )					--remove surrounding vein
 end
  
 function Move ( here )
-	if here == "up" then return turtle.up()
+	if here == "up" then 
+		return turtle.up()
 	elseif here == "forward" then
 		return turtle.forward()
-	elseif here == "down" then return turtle.down()
-	elseif here == "back" then return turtle.back()
-	else return nil 
+	elseif here == "down" then
+		return turtle.down()
 	end 
-	
 end
- 
-function Place( here )		--places block up, forward or down.  fills in with gravel below
-		if here == "up" then 
-			return turtle.placeUp()
-		elseif here == "down" then 
-			turtle.placeDown()
-			if not turtle.detectDown() then  --if there is a gap under the turtle, drop gravel to fill in
+
+function Place( here )					--places block up, forward or down.  fills in with gravel below
+	if here == "up" then 
+		return turtle.placeUp()
+	elseif here == "down" then 
+		local t = turtle.getItemCount(GRAVEL_SLOT) 		--how many gravel blocks do we have?
+		turtle.placeDown()	
+		LAST_SLOT = CURRENT_SLOT
+		turtle.select(GRAVEL_SLOT)		
+		CURRENT_SLOT = GRAVEL_SLOT
+												--use all gravel but one.  not the end of the world if we're going over a ravine, turtles float			
+		if not turtle.detectDown() then  			--if there is a gap under the turtle, drop gravel to fill in
+			while i < t do 	
 				Select(GRAVEL_SLOT)
-				return Place("down")
-			else turtle.placeDown() 
+				Place("down")						
+				if t = 1 then 	
+					return true
+				else
+					return false
+				end
+				t = t + 1
 			end
+		else turtle.placeDown()
+		end
 		elseif here == "forward" then 
 			return turtle.place() 
 		end 
 	return false 
 end
+
+function PlaceCobble( here )			--places a block
+	Select(COBBLE_SLOT)
+	Place(here)
+	Select(CURRENT_SLOT)
+end
  
-function RemoveBlock( here )  --removes block and any gravel/sand (sand/gravel from above falls down when mined)
+function RemoveBlock( here )  			--removes block and any gravel/sand (sand/gravel from above falls down when mined)
 	local failsafe = 0	
 	
 		if here == "down" then Dig("down")
@@ -399,7 +356,7 @@ function RemoveBlock( here )  --removes block and any gravel/sand (sand/gravel f
 	end 
 end
 
-function Right ( doThis, here )  --turn right, call a function, turn left
+function Right ( doThis, here )  		--turn right, call a function, turn left
 	 local result
 	 local doIt = doThis	
 	 turtle.turnRight()
@@ -407,7 +364,7 @@ function Right ( doThis, here )  --turn right, call a function, turn left
 	 turtle.turnLeft()
 	 return result end 
 
-function RotateH( doThis, here ) --rotates and calls a function
+function RotateH( doThis, here ) 		--rotates and calls a function
 	local result
 	local doIt = doThis	
 	turtle.turnRight()
@@ -419,7 +376,7 @@ function RotateH( doThis, here ) --rotates and calls a function
 	turtle.turnRight()
 	doIt(here) end 
 
-function Stats ( this, that )		--prints various stats
+function Stats ( this, that )			--prints various stats
 	FUEL_USED = FUEL_USED + LAST_FUEL - turtle.getFuelLevel()
 	LAST_FUEL = turtle.getFuelLevel()
 	if this == "distance" then
@@ -448,7 +405,7 @@ function Select ( slot )
 	CURRENT_SLOT = slot
 end
 	
-function TorchCheck()	--checks to see if torch needs to be placed
+function TorchCheck()					--checks to see if torch needs to be placed
 	local BH = BlockHandler
 	if (DISTANCE % TORCH_SPACE) == 0 and turtle.getItemCount(TORCH_SLOT) > 0 then
 		Stats("torch")	
@@ -458,13 +415,13 @@ function TorchCheck()	--checks to see if torch needs to be placed
 		if turtle.detect() then
 			BH("forward")
 		else
-			FillLiquid("forward")
+			PlaceCobble("forward")
 		end
 		
 		if turtle.detectDown() then
 			BH("down")
 		else
-			FillLiquid("down")
+			PlaceCobble("down")
 		end
 		
 		turtle.back()
@@ -474,14 +431,37 @@ function TorchCheck()	--checks to see if torch needs to be placed
 	end 
 end 
 
-function main()  --main deal
-	
+function TunnelForward( thisFar )		--mine a 1x2 tunnel forward a given number of units
+	local i
+	for i = 1, thisFar do  					  
+		if IsFull() then CheckInventory() end
+		FuelCheck()
+		TorchCheck()
+											--Coords		 Facing
+		--turtle.now						-- 0,0,0			N								
+		DigAndMove("forward")				-- 0,1,0			N
+			BlockHandler("down")			
+		turtle.turnLeft()					-- 0,1,0			W
+			BlockHandler("forward")
+		DigAndMove("up")					-- 0,1,1			W
+			BlockHandler("up")
+			BlockHandler("forward")
+		turtle.turnRight()					-- 0,1,1			N
+		turtle.turnRight()					-- 0,1,1			E
+			BlockHandler("forward")
+		turtle.down()						-- 0,1,0			E
+			BlockHandler("forward")
+
+		turtle.turnLeft()					-- 0,1,0			N
+		Stats("distance")					--add one to distance travelled and display stats
+	end
+end
+
+function main()
 	InitFuel()
 	local AA = A
 	for i=1, H_REPETITION do
 	AA(H_REPETITION2) end
-
-	
 end
 
 main()
