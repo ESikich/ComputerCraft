@@ -65,19 +65,17 @@ end
   
 function BlockHandler( here )				
 	if Detect(here) then
-		if IsOre(here) then	
-			MineOre(here)
-		end
-	else
-		PlaceCobble(here)
-	end
+		if IsOre(here) then	MineOre(here) end
+	else Place(COBBLE_SLOT, here) end
 end
 
 function CheckInventory( onInit )
 	print("Checking inventory...")	
 	local n = 0
+	local invThresh = 13						--dump inventory after this many slots are full
+	local slotReorg = 14 								--number of slots to reorgainze
 	
-	for i = INV_COUNT+1, TOTAL_SLOTS - 1 do				--first consolidate fuel items into one slot
+	for i = INV_COUNT+1, TOTAL_SLOTS - 1 do		--first consolidate fuel items into one slot
 		Select(FUEL_SLOT)
 		if turtle.compareTo(i) then
 			turtle.select(i)
@@ -87,7 +85,7 @@ function CheckInventory( onInit )
 		Select(LAST_SLOT)
 	end
 	
-	for i = 1, 14 do
+	for i = 1, slotReorg do
 		if turtle.getItemCount(i) > 0 then		--slot used, reorganize, checking for duplicate slots
 			n = n + 1
 			CheckSlotDupes(i)
@@ -96,7 +94,7 @@ function CheckInventory( onInit )
 	
 	result = n
 	
-	if n > 13 then 								--if inventory is full dump it into a chest
+	if n > invThresh then 						--dump inventory into a chest after threshold level
 		result = DumpInventory("forward") 
 	end
 	print("Done")
@@ -128,33 +126,31 @@ function Detect ( here )	--detect if block is air/water/lava or mineable
 	if here == "up" then return turtle.detectUp()
 	elseif here == "down" then return turtle.detectDown()
 	elseif here == "forward" then return turtle.detect() end return false end
- 
+
+function Drop ( thisSlot, thisMany )
+	turtle.select(thisSlot)				--if thisMany == nil then everything will be dropped
+	turtle.drop(thisMany)
+end
+	
 function DumpInventory( here ) --drops chest and fills it
 	local i, g, result
 	result = -1
 	print("Placing chest...")
-	if Detect("forward") then
-		RemoveBlock("forward")
-	end											--place chest
-	Select(ENDER_CHEST_SLOT)
-	turtle.place()
+	RemoveBlock("forward")
+	Place(ENDER_CHEST_SLOT, here)
 	for i = INV_COUNT+1, TOTAL_SLOTS - 1 do
 		print(i)
-		turtle.select(i)
-		CURRENT_SLOT = i
-		turtle.drop()
+		Drop(i)
 		sleep(.1)
 	end
 	Select(LAST_SLOT)
 	FuelCheck()
 	g = turtle.getItemCount(FUEL_SLOT)		--dump fuel items if we have too many
 	if g > MIN_FUEL_COUNT then
-		Select(FUEL_SLOT)
-		turtle.drop(g - MIN_FUEL_COUNT)
+		Drop(FUEL_SLOT, g - MIN_FUEL_COUNT)
+		Select(LAST_SLOT)
 	end
-	Select(LAST_SLOT)
-	RemoveBlock("forward")		--destroy chest
-	turtle.forward()  			--check to see if there is anything here to mine
+	DigAndMove("forward")
 	BlockHandler("forward")
 	BlockHandler("up")
 	BlockHandler("down")
@@ -171,15 +167,10 @@ function Dig( here )
 	elseif here == "forward" then return turtle.dig() end end
 
 function DigAndMove ( here )
-	if here == "up" then 
-		RemoveBlock("up")
-		return turtle.up()
-	elseif here == "forward" then
-		RemoveBlock("forward")
-		return turtle.forward()
-	elseif here == "down" then
-		RemoveBlock("down")
-		return turtle.down()
+	RemoveBlock(here)
+	if here == "forward" then return turtle.forward()
+	elseif here == "up" then return turtle.up()
+	elseif here == "down" then return turtle.down()
 	end 
 end	
 	
@@ -212,33 +203,26 @@ function IsFull ( )						--checks to see if inventory is full
 end	
 	
 function IsOre(here)					--cycles through inventory slots and compares to a block
-							--if it doesn't match our "junk" inventory, it's an ore
+						
 	local i
-
-	if Compare(here) then
-		if CURRENT_SLOT > INV_COUNT then
-			result = true
-		else
-			result = false
+	if Compare(here) then  				
+		if CURRENT_SLOT > INV_COUNT then result = true
+		else result = false
 		end
 	else
 		for i = 1, TOTAL_SLOTS - 1 do
 			turtle.select(i)
 			CURRENT_SLOT = i
 			if Compare(here) then
-				if i > INV_COUNT then 
-					result = true
+				if i > INV_COUNT then result = true
 					break
-				else
-					result = false
+				else result = false 
 					break
 				end
 			end
 		end
 	end
-
 	print(result)
-	
 	if result == nil then result = true end
 	return result
 end
@@ -278,80 +262,61 @@ function MineOre( here )				--remove surrounding vein
 		RH(BH, "forward")
 		BH(here)
 	end	
-	TS(COBBLE_SLOT)
+
 	if here == "forward" then				--covering up our tracks
 		TB()
-		P(here)
+		P(COBBLE_SLOT, here)
 	elseif here == "up" then
 		D()
-		P(here)
+		P(COBBLE_SLOT, here)
 	elseif here == "down" then
 		U()
-		P(here)
+		P(COBBLE_SLOT, here)
 	end
-	TS(LAST_SLOT)
 end
  
 function Move ( here )
-	if here == "up" then 
-		return turtle.up()
-	elseif here == "forward" then
-		return turtle.forward()
-	elseif here == "down" then
-		return turtle.down()
+	if here == "up" then return turtle.up()
+	elseif here == "forward" then return turtle.forward()
+	elseif here == "down" then return turtle.down()
 	end 
 end
 
-function Place( here )					--places block up, forward or down.  fills in with gravel below
-	if here == "up" then 
-		return turtle.placeUp()
+function Place( thisSlot, here )					--places block up, forward or down.  fills in with gravel below
+	Select(thisSlot)
+	if here == "forward" then return turtle.place()
 	elseif here == "down" then 
-		local t = turtle.getItemCount(GRAVEL_SLOT) 		--how many gravel blocks do we have?
+		local t = turtle.getItemCount(GRAVEL_SLOT) 		
 		turtle.placeDown()	
-		LAST_SLOT = CURRENT_SLOT
-		turtle.select(GRAVEL_SLOT)		
-		CURRENT_SLOT = GRAVEL_SLOT
-												--use all gravel but one.  not the end of the world if we're going over a ravine, turtles float			
-		if not turtle.detectDown() then  			--if there is a gap under the turtle, drop gravel to fill in
-			while i < t do 	
-				Select(GRAVEL_SLOT)
+		Select(GRAVEL_SLOT)												
+		if not turtle.detectDown() then
+			while i < t do
 				Place("down")						
-				if t = 1 then 	
-					return true
-				else
-					return false
+				if t = 1 then return true
+				else return false
 				end
 				t = t + 1
 			end
 		else turtle.placeDown()
 		end
-		elseif here == "forward" then 
-			return turtle.place() 
-		end 
+	elseif here == "up" then return turtle.placeUp() 
+	end
+	Select(LAST_SLOT)
 	return false 
-end
-
-function PlaceCobble( here )			--places a block
-	Select(COBBLE_SLOT)
-	Place(here)
-	Select(CURRENT_SLOT)
 end
  
 function RemoveBlock( here )  			--removes block and any gravel/sand (sand/gravel from above falls down when mined)
 	local failsafe = 0	
-	
-		if here == "down" then Dig("down")
-		else 
-			if Dig(here) == true then
-				Select(GRAVEL_SLOT)
-				if Compare(here) == true then
-					failsafe = 0
-					while Dig(here) and (failsafe < 16) do  --infinite loop protection
+	if here == "down" then Dig("down")
+	else 
+		if Dig(here) == true then Select(GRAVEL_SLOT)
+			if Compare(here) == true then failsafe = 0
+				while Dig(here) and (failsafe < 16) do  --infinite loop protection
 					sleep(.5)
 					failsafe = failsafe + 1 
 				end
-				Select(LAST_SLOT)
 			end
+			Select(LAST_SLOT)
 		end 
 	end 
 end
@@ -411,23 +376,14 @@ function TorchCheck()					--checks to see if torch needs to be placed
 		Stats("torch")	
 		RemoveBlock("forward")
 		turtle.forward()
-		
-		if turtle.detect() then
-			BH("forward")
-		else
-			PlaceCobble("forward")
+		if turtle.detect() then BH("forward")
+		else Place(COBBLE_SLOT, "forward")
 		end
-		
-		if turtle.detectDown() then
-			BH("down")
-		else
-			PlaceCobble("down")
+		if turtle.detectDown() then BH("down")
+		else Place(COBBLE_SLOT, "down")
 		end
-		
 		turtle.back()
-		Select(TORCH_SLOT)
-		Place("forward")
-		Select(LAST_SLOT)
+		Place(TORCH_SLOT, "forward")
 	end 
 end 
 
