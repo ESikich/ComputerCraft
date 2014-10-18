@@ -1,3 +1,5 @@
+require("TurtleBasics.lua")
+
 --Designate inventory slots
 STONE_SLOT 			= 1
 COBBLE_SLOT			= 2
@@ -66,7 +68,7 @@ end
 function BlockHandler( here )				
 	if Detect(here) then
 		if IsOre(here) then	MineOre(here) end
-	end
+	else Place(COBBLE_SLOT, here) end
 end
 
 function CheckInventory( onInit )
@@ -117,21 +119,6 @@ function CheckSlotDupes ( index )	--check inventory slots for duplicate items, c
 	Select(LAST_SLOT)
 end
 	
-function Compare( here )	--compare selected slot to block
-	if here == "up" then return turtle.compareUp()
-	elseif here == "down" then return turtle.compareDown()
-	elseif here == "forward" then return turtle.compare() end return false end
- 
-function Detect ( here )	--detect if block is air/water/lava or mineable
-	if here == "up" then return turtle.detectUp()
-	elseif here == "down" then return turtle.detectDown()
-	elseif here == "forward" then return turtle.detect() end return false end
-
-function Drop ( thisSlot, thisMany )
-	turtle.select(thisSlot)				--if thisMany == nil then everything will be dropped
-	turtle.drop(thisMany)
-end
-	
 function DumpInventory( here ) --drops chest and fills it
 	local i, g, result
 	result = -1
@@ -140,7 +127,7 @@ function DumpInventory( here ) --drops chest and fills it
 	Place(ENDER_CHEST_SLOT, here)
 	for i = INV_COUNT+1, TOTAL_SLOTS - 1 do
 		print(i)
-		Drop(i, 64)
+		Drop(i)
 		sleep(.1)
 	end
 	Select(LAST_SLOT)
@@ -160,20 +147,6 @@ function DumpInventory( here ) --drops chest and fills it
 	return result
 end 
 
-function Dig( here )
-	TOTAL_BLOCKS = TOTAL_BLOCKS + 1  --stats
-	if here == "up" then return turtle.digUp()
-	elseif here == "down" then return turtle.digDown()
-	elseif here == "forward" then return turtle.dig() end end
-
-function DigAndMove ( here )
-	RemoveBlock(here)
-	if here == "forward" then return turtle.forward()
-	elseif here == "up" then return turtle.up()
-	elseif here == "down" then return turtle.down()
-	end 
-end	
-	
 function FuelCheck()					--checks fuel level
 	local GC = turtle.getItemCount
 	print("Fuel: " .. turtle.getFuelLevel())
@@ -205,7 +178,6 @@ end
 function IsOre(here)					--cycles through inventory slots and compares to a block
 						
 	local i
-	local result = nil
 	if Compare(here) then  				
 		if CURRENT_SLOT > INV_COUNT then result = true
 		else result = false
@@ -225,15 +197,6 @@ function IsOre(here)					--cycles through inventory slots and compares to a bloc
 	end
 	print(result)
 	if result == nil then result = true end
-	return result
-end
-
-function Left( doThis, here )  			--turn left, call a function, turn right	
-	local result
-	local doIt = doThis	
-	turtle.turnLeft()
-	result = doIt(here)
-	turtle.turnRight()
 	return result
 end
 
@@ -276,36 +239,6 @@ function MineOre( here )				--remove surrounding vein
 	end
 end
  
-function Move ( here )
-	if here == "up" then return turtle.up()
-	elseif here == "forward" then return turtle.forward()
-	elseif here == "down" then return turtle.down()
-	end 
-end
-
-function Place( thisSlot, here )					--places block up, forward or down.  fills in with gravel below
-	Select(thisSlot)
-	if here == "forward" then return turtle.place()
-	elseif here == "down" then 
-		local t = turtle.getItemCount(GRAVEL_SLOT) 		
-		turtle.placeDown()	
-		Select(GRAVEL_SLOT)												
-		if not turtle.detectDown() then
-			while i < t do
-				Place("down")						
-				if t == 1 then return true
-				else return false
-				end
-				t = t + 1
-			end
-		else turtle.placeDown()
-		end
-	elseif here == "up" then return turtle.placeUp() 
-	end
-	Select(LAST_SLOT)
-	return false 
-end
- 
 function RemoveBlock( here )  			--removes block and any gravel/sand (sand/gravel from above falls down when mined)
 	local failsafe = 0	
 	if here == "down" then Dig("down")
@@ -330,18 +263,6 @@ function Right ( doThis, here )  		--turn right, call a function, turn left
 	 turtle.turnLeft()
 	 return result end 
 
-function RotateH( doThis, here ) 		--rotates and calls a function
-	local result
-	local doIt = doThis	
-	turtle.turnRight()
-	doIt(here)
-	turtle.turnRight()
-	doIt(here)
-	turtle.turnRight()
-	doIt(here)
-	turtle.turnRight()
-	doIt(here) end 
-
 function Stats ( this, that )			--prints various stats
 	FUEL_USED = FUEL_USED + LAST_FUEL - turtle.getFuelLevel()
 	LAST_FUEL = turtle.getFuelLevel()
@@ -365,12 +286,6 @@ function Stats ( this, that )			--prints various stats
 		print((FUEL_USED / ORE) .. " per ore.") return true
 	elseif this == "fuelchunks" then end return false end	
 
-function Select ( slot )
-	LAST_SLOT = CURRENT_SLOT
-	turtle.select(slot)
-	CURRENT_SLOT = slot
-end
-	
 function TorchCheck()					--checks to see if torch needs to be placed
 	local BH = BlockHandler
 	if (DISTANCE % TORCH_SPACE) == 0 and turtle.getItemCount(TORCH_SLOT) > 0 then
@@ -393,27 +308,22 @@ function TunnelForward( thisFar )		--mine a 1x2 tunnel forward a given number of
 	for i = 1, thisFar do  					  
 		if IsFull() then CheckInventory() end
 		FuelCheck()
+		TorchCheck()
 											--Coords		 Facing
 		--turtle.now						-- 0,0,0			N								
 		DigAndMove("forward")				-- 0,1,0			N
-			BlockHandler("down")
-			if not Detect("down") then Place(COBBLE_SLOT, "down") end
+			BlockHandler("down")			
 		turtle.turnLeft()					-- 0,1,0			W
 			BlockHandler("forward")
-			if not Detect("forward") then Place(COBBLE_SLOT, "forward") end
 		DigAndMove("up")					-- 0,1,1			W
 			BlockHandler("up")
-			if not Detect("up") then Place(COBBLE_SLOT, "up") end
 			BlockHandler("forward")
-			if not Detect("forward") then Place(COBBLE_SLOT, "forward") end
 		turtle.turnRight()					-- 0,1,1			N
 		turtle.turnRight()					-- 0,1,1			E
 			BlockHandler("forward")
-			if not Detect("forward") then Place(COBBLE_SLOT, "forward") end
 		turtle.down()						-- 0,1,0			E
 			BlockHandler("forward")
-			if not Detect("forward") then Place(COBBLE_SLOT, "forward") end
-			TorchCheck()
+
 		turtle.turnLeft()					-- 0,1,0			N
 		Stats("distance")					--add one to distance travelled and display stats
 	end
@@ -423,7 +333,7 @@ function main()
 	InitFuel()
 	local AA = A
 	for i=1, H_REPETITION do
-	AA(H_REPETITION) end
+	AA(H_REPETITION2) end
 end
 
 main()
