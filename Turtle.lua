@@ -25,6 +25,9 @@ FUEL_USED 			= 0						--tracks units of fuel used, not blocks used
 LAST_FUEL 			= 0						--previous FUEL_USED
 ORE					= 0						--total amount of ore mined
 TOTAL_BLOCKS		= 0						--total amount of blocks dug
+TOTAL_SHAFTS 		= 4
+SHAFT_WIDTH			= 2
+SHAFT_LENGTH		= 5
 
 --Hilbert variablesr
 H_REPETITION		= 2						--Hilbert depth
@@ -154,8 +157,12 @@ function DumpInventory( here ) --drops chest and fills it
 	BlockHandler("forward")
 	BlockHandler("up")
 	BlockHandler("down")
-	Right(BlockHandler, "forward")
-	Left(BlockHandler, "forward")
+	turtle.turnRight()
+	BlockHandler("forward")
+	turtle.turnLeft()
+	turtle.turnLeft()
+	BlockHandler("forward")
+	turtle.turnRight()
 	turtle.back()
 	return result
 end 
@@ -322,14 +329,6 @@ function RemoveBlock( here )  			--removes block and any gravel/sand (sand/grave
 	end 
 end
 
-function Right ( doThis, here )  		--turn right, call a function, turn left
-	 local result
-	 local doIt = doThis	
-	 turtle.turnRight()
-	 result = doIt(here)
-	 turtle.turnLeft()
-	 return result end 
-
 function RotateH( doThis, here ) 		--rotates and calls a function
 	local result
 	local doIt = doThis	
@@ -339,8 +338,10 @@ function RotateH( doThis, here ) 		--rotates and calls a function
 	doIt(here)
 	turtle.turnRight()
 	doIt(here)
-	turtle.turnRight()
-	doIt(here) end 
+	turtle.turnRight()	
+	doIt(here) 
+end
+	
 
 function Stats ( this, that )			--prints various stats
 	FUEL_USED = FUEL_USED + LAST_FUEL - turtle.getFuelLevel()
@@ -421,9 +422,26 @@ end
 
 function main()
 	InitFuel()
-	local AA = A
-	for i=1, H_REPETITION do
-	AA(H_REPETITION) end
+	TunnelForward(SHAFT_LENGTH+2)
+	turtle.turnRight()
+	TunnelForward((TOTAL_SHAFTS-1)*3)
+	turtle.turnRight()
+	TunnelForward(SHAFT_LENGTH+1)
+	turtle.turnRight()
+	TunnelForward((TOTAL_SHAFTS-2)*3)
+	turtle.turnRight()
+	
+	for i = 1, SHAFTS / 2 do
+		TunnelForward(SHAFT_LENGTH+1)
+		turtle.turnRight()
+		TunnelForward(SHAFT_WIDTH+1)
+		turtle.turnRight()
+		TunnelForward(SHAFT_LENGTH+1)
+		turtle.turnLeft()
+		TunnelForward(SHAFT_WIDTH+1)
+		turtle.turnLeft()
+	end
+	
 end
 
 main()
