@@ -180,6 +180,10 @@ function DigAndMove ( here )
 	elseif here == "down" then return turtle.down()
 	end 
 end	
+
+function FillVoid( here )
+	if not Detect(here) then Place(COBBLE_SLOT, here) end
+end
 	
 function FuelCheck()					--checks fuel level
 	local GC = turtle.getItemCount
@@ -392,22 +396,22 @@ function TunnelForward( thisFar )		--mine a 1x2 tunnel forward a given number of
 		--turtle.now						-- 0,0,0			N								
 		DigAndMove("forward")				-- 0,1,0			N
 			BlockHandler("down")
-			if not Detect("down") then Place(COBBLE_SLOT, "down") end
+			FillVoid("down")
 		turtle.turnLeft()					-- 0,1,0			W
 			BlockHandler("forward")
-			if not Detect("forward") then Place(COBBLE_SLOT, "forward") end
+			FillVoid("forward")
 		DigAndMove("up")					-- 0,1,1			W
 			BlockHandler("up")
-			if not Detect("up") then Place(COBBLE_SLOT, "up") end
+			FillVoid("up")
 			BlockHandler("forward")
-			if not Detect("forward") then Place(COBBLE_SLOT, "forward") end
+			FillVoid("forward")
 		turtle.turnRight()					-- 0,1,1			N
 		turtle.turnRight()					-- 0,1,1			E
 			BlockHandler("forward")
-			if not Detect("forward") then Place(COBBLE_SLOT, "forward") end
+			FillVoid("forward")
 		turtle.down()						-- 0,1,0			E
 			BlockHandler("forward")
-			if not Detect("forward") then Place(COBBLE_SLOT, "forward") end
+			FillVoid("forward")
 			TorchCheck()
 		turtle.turnLeft()					-- 0,1,0			N
 		Stats("distance")					--add one to distance travelled and display stats
