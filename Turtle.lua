@@ -235,21 +235,11 @@ function IsOre(here)					--cycles through inventory slots and compares to a bloc
 	return result
 end
 
-function Left( doThis, here )  			--turn left, call a function, turn right	
-	local result
-	local doIt = doThis	
-	turtle.turnLeft()
-	result = doIt(here)
-	turtle.turnRight()
-	return result
-end
-
 function MineOre( here )				--remove surrounding vein	
 	local m = MineOre						--declaring functions locally is supposed to be 
 	local a = 0								--much faster in lua
 	local RB = RemoveBlock
 	local M = Move
-	local R = Right
 	local BH = BlockHandler
 	local RH = RotateH
 	local TS = Select
@@ -261,9 +251,13 @@ function MineOre( here )				--remove surrounding vein
 	RB(here)						--get ore and move in	
 	M(here)
 	if here == "forward" then				--send surrounding area to the BlockHandler
-		R(BH, "forward")
+		turtle.turnRight()
+		BH("forward")
+		turtle.turnLeft()
 		BH("up")
-		Left(BH, "forward")
+		turtle.turnLeft()
+		BH("forward")
+		turtle.turnRight()
 		BH("down")
 		BH("forward")	
 	else 
